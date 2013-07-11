@@ -31,6 +31,10 @@ var loadDefaults = function () {
 
     return data;
 };
+var checkSite = function (name) {
+    var site = require('/modules/site.js');
+    return !site.loadSite(name);
+};
 
 var createSite = function (name) {
     var site = require('/modules/site.js'),
@@ -109,7 +113,7 @@ var listSites = function () {
         sites = site.listSites(),
         data = loadDefaults();
     data.cwd = {
-        "date": "Yesterday 17:14",
+        "date":  new Date(),
         "dirs": 1,
         "hash": "l1_Lw",
         "locked": 1,
@@ -137,7 +141,7 @@ var listSites = function () {
     };
 
     data.files.push(data.cwd);
-    data.files.push(l2);
+//    data.files.push(l2);
     sites = filterSites(sites);
     items = sites.self;
     length = items.length;
@@ -147,14 +151,14 @@ var listSites = function () {
         temp.edit = true;
         data.files.push(temp);
     }
-    items = sites.shared.edit;
-    length = items.length;
-    for (i = 0; i < length; i++) {
-        temp = dirData(items[i]);
-        temp.phash = l2.hash;
-        temp.edit = true;
-        data.files.push(temp);
-    }
+    /*    items = sites.shared.edit;
+     length = items.length;
+     for (i = 0; i < length; i++) {
+     temp = dirData(items[i]);
+     temp.phash = l2.hash;
+     temp.edit = true;
+     data.files.push(temp);
+     }*/
     /*items = sites.shared.access;
      length = items.length;
      for (i = 0; i < length; i++) {
@@ -207,7 +211,11 @@ var listFiles = function (path) {
 //TODO: avoid path var
 var dirData = function (dir, path) {
 
-    path = path || filterPath(dir.getPath()).substr(1);
+    //super hack to work in windows
+    //TODO: Refactor this!
+    var f = filterPath(dir.getPath());
+    f = f.indexOf('/') == 0 ? f.substr(1) : f;
+    path = path || f;
 
     return {
         "date": new Date(),
@@ -219,7 +227,7 @@ var dirData = function (dir, path) {
         "read": 1,
         "size": dir.listFiles().length > 1 ? dir.listFiles().length + ' items'
             : dir.listFiles().length + ' item',
-        "ts": dir.getLastModified()/1000,
+        "ts": dir.getLastModified() / 1000,
         "write": 1,
         "url": "/" + path
     };
@@ -240,7 +248,7 @@ var fileData = function (file) {
         "size": file.isDirectory() ? (file.listFiles().length > 1 ? file.listFiles().length + ' items'
             : file.listFiles().length + ' item')
             : file.getLength(),
-        "ts": file.getLastModified()/1000,
+        "ts": file.getLastModified() / 1000,
         "write": 1,
         "dirs": 1,
         "url": "/" + path
@@ -339,6 +347,39 @@ var mkfile = function (path, name) {
 };
 
 var copy = function (src, dest, tgts) {
+    var added = [];
+
+    if (tgts instanceof Array) {
+        for (var target in tgts) {
+            var data = copyEach(src, dest, tgts[target]);
+            added.push(data);
+        }
+    } else {
+        var data = copyEach(src, dest, tgts);
+        added.push(data);
+    }
+    return {'added': added};
+};
+
+var cut = function (src, dest, tgts) {
+    var added = [];
+
+    if (tgts instanceof Array) {
+        for (var target in tgts) {
+            var data = copyEach(src, dest, tgts[target]);
+            added.push(data);
+        }
+    } else {
+        var data = copyEach(src, dest, tgts);
+        added.push(data);
+    }
+    var rem = remove(tgts);
+    return {'added': added,
+        'removed': rem.removed};
+};
+
+var copyEach = function (src, dest, tgts) {
+
     var site = require('/modules/site.js');
     //var source = parsePath(decode(src));
     var dst = parsePath(decode(dest));
@@ -351,7 +392,8 @@ var copy = function (src, dest, tgts) {
     var file = site.loadFile(dst.site, dst.path + '/' + srcFile.getName());
     var data = fileData(file);
     data.phash = dest;
-    return {'added': [data]};
+
+    return data;
 };
 
 var duplicate = function (tgts) {
@@ -378,7 +420,7 @@ var size = function (tgts) {
 
     var file = site.loadFile(targets.site, targets.path);
 
-    return {'size' : file.isDirectory() ? (file.listFiles().length > 1 ? file.listFiles().length + ' items'
+    return {'size': file.isDirectory() ? (file.listFiles().length > 1 ? file.listFiles().length + ' items'
         : file.listFiles().length + ' item')
         : file.getLength()};
 
@@ -444,14 +486,29 @@ var rename = function (hash, name) {
 
 };
 
-var remove = function (paths) {
+var remove = function (tgts) {
+    var removed = [];
+
+    if (tgts instanceof Array) {
+        for (var target in tgts) {
+            var data = removeEach(tgts[target]);
+            removed.push(data);
+        }
+    } else {
+        var data = removeEach(tgts);
+        removed.push(data);
+    }
+    return {'removed': removed};
+};
+
+var removeEach = function (paths) {
 
     var site = require('/modules/site.js'),
         parsedPath = parsePath(decode(paths));
 
     site.removeFile(parsedPath.site, parsedPath.path);
 
-    return {'removed': [paths]};
+    return paths;
 };
 
 /*
@@ -462,7 +519,7 @@ var filterSites = function (sites) {
         server = require('/modules/server.js'),
         registry = server.systemRegistry(),
         user = require('/modules/user.js'),
-        space = require('/portal.js').storeSpace(),
+        space = require('/modules/portal.js').storeSpace(),
         assets = space.get('userAssets'),
         u = user.current(),
         um = server.userManager(),

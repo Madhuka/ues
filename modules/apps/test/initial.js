@@ -1,11 +1,11 @@
 var caramel = require('caramel');
-require('modules/app.js');
-var climate = require('climate.js').config();
+require('/app.js');
+var portal = require('/config.js').config();
 var sites = require('/sites/site.json');
 var rxtPath = '/sites/', deployer = require('/modules/deployer.js'), 
 context = caramel.configs().context, 
-base = climate.server.http + context + rxtPath, 
-log = new Log('climate.site.deployer');
+base = portal.server.http + context + rxtPath, 
+log = new Log('test.site.deployer');
 
 var populateSites = function() {
 	var slength = sites.sites.length;
@@ -19,14 +19,14 @@ var populateSites = function() {
 			rate: sites.sites[i].rate,
 			provider : sites.sites[i].attributes.overview_provider,
 			version : sites.sites[i].attributes.overview_version,
-			description : sites.sites[i].attributes.overview_description,
-			url : sites.sites[i].attributes.overview_url,
-			thumbnail : sites.sites[i].attributes.images_thumbnail,
-			banner : sites.sites[i].attributes.images_banner,
+            description : sites.sites[i].attributes.overview_description,
+			url : portal.server.http + sites.sites[i].attributes.overview_url,
+			thumbnail : portal.server.http + sites.sites[i].attributes.images_thumbnail,
+			banner : portal.server.http + sites.sites[i].attributes.images_banner,
 			status : sites.sites[i].attributes.overview_status
 		});
 	}
 
-	log.info("Climate site deployed");
+	log.info("Default test sites deployed");
 };
 populateSites();

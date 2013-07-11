@@ -2,20 +2,8 @@ var config;
 (function () {
     config = function () {
         var log = new Log(),
-            pinch = require('pinch.min.js').pinch,
-           config = {
-    "server": {
-        "https": "%https.host%",
-        "http": "%http.host%"
-    },    
-    "adminRole": "admin",
-    "user": {
-        "username": "admin",
-        "password": "admin"
-    },
-    "userRoles": ["portal"]
-   
-},
+            pinch = require('/modules/pinch.min.js').pinch,
+            config = require('/config.json'),
             process = require('process'),
             localIP = process.getProperty('server.host'),
             httpPort = process.getProperty('http.port'),
